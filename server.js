@@ -59,15 +59,16 @@ app.get('/api/files', async (_req, res) => {
   }
 });
 
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+app.post('/api/upload', upload.array('files'), (req, res) => {
+  const files = req.files || [];
+  if (!files.length) return res.status(400).json({ error: 'No files uploaded' });
   res.json({
-    file: {
-      name: req.file.filename,
-      originalName: req.file.originalname,
-      size: req.file.size,
-      url: `/uploads/${encodeURIComponent(req.file.filename)}`,
-    },
+    files: files.map((f) => ({
+      name: f.filename,
+      originalName: f.originalname,
+      size: f.size,
+      url: `/uploads/${encodeURIComponent(f.filename)}`,
+    })),
   });
 });
 
