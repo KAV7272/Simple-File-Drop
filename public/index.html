@@ -9,21 +9,36 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0b1021;
-      --panel: #0f172a;
-      --card: rgba(255, 255, 255, 0.02);
-      --accent: #22c55e;
-      --accent-2: #06b6d4;
+      --bg: #f8fbff;
+      --panel: #ffffff;
+      --card: #ffffff;
+      --accent: #1d4ed8;
+      --accent-2: #2563eb;
+      --muted: #475569;
+      --text: #0f172a;
+      --border: rgba(0, 0, 0, 0.08);
+      --shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+      --chip-bg: rgba(37, 99, 235, 0.08);
+      --danger: #ef4444;
+    }
+    .dark {
+      --bg: #0b1221;
+      --panel: #0e182b;
+      --card: #0e182b;
+      --accent: #3b82f6;
+      --accent-2: #2563eb;
       --muted: #94a3b8;
       --text: #e2e8f0;
       --border: rgba(255, 255, 255, 0.08);
-      --shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
+      --shadow: 0 14px 45px rgba(0, 0, 0, 0.45);
+      --chip-bg: rgba(37, 99, 235, 0.12);
+      --danger: #f87171;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Space Grotesk", "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 10% 20%, #0f172a, #0b1021 45%), radial-gradient(circle at 80% 0%, #0f172a, #0b1021 40%);
+      background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       display: flex;
@@ -40,7 +55,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(145deg, rgba(34,197,94,0.08), rgba(6,182,212,0.05));
+      background: linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.12));
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 16px 18px;
@@ -48,17 +63,6 @@
     }
     h1 { margin: 0; font-size: 24px; letter-spacing: 0.5px; }
     header p { margin: 2px 0 0; color: var(--muted); }
-    .pill {
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.04);
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
     .grid {
       display: grid;
       gap: 18px;
@@ -70,7 +74,6 @@
       border-radius: 18px;
       padding: 18px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
     }
     .card h2 { margin: 0 0 10px; font-size: 18px; }
     .muted { color: var(--muted); margin: 0; }
@@ -85,7 +88,7 @@
       padding: 10px;
       border: 1px dashed var(--border);
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(37, 99, 235, 0.04);
       color: var(--muted);
       cursor: pointer;
     }
@@ -96,10 +99,10 @@
       font-weight: 700;
       letter-spacing: 0.2px;
       background: linear-gradient(120deg, var(--accent), var(--accent-2));
-      color: #04130b;
+      color: #f8fafc;
       cursor: pointer;
       transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
-      box-shadow: 0 14px 35px rgba(34, 197, 94, 0.22);
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.25);
     }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
     button:hover:not(:disabled) { transform: translateY(-1px); }
@@ -134,7 +137,7 @@
       gap: 6px;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--chip-bg);
       border: 1px solid var(--border);
       color: var(--muted);
       font-size: 13px;
@@ -145,13 +148,13 @@
       padding: 8px 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.02);
+      background: rgba(37, 99, 235, 0.06);
       transition: border-color 120ms ease;
     }
     .link:hover { border-color: var(--accent); }
     .danger {
       background: none;
-      color: #fca5a5;
+      color: var(--danger);
       border: 1px solid rgba(248,113,113,0.35);
       box-shadow: none;
       padding: 8px 10px;
@@ -177,9 +180,7 @@
         <h1>Simple File Drop</h1>
         <p class="muted">Upload, list, download, and remove files on your own server.</p>
       </div>
-      <div class="pill">
-        <span>🚢 Self-host ready</span>
-      </div>
+      <button id="theme-toggle" class="link" style="border-radius: 999px;">Toggle theme</button>
     </header>
 
     <div class="grid">
@@ -209,6 +210,7 @@
     const fileInput = document.getElementById('file-input');
     const statusEl = document.getElementById('status');
     const uploadBtn = document.getElementById('upload-button');
+    const toggleBtn = document.getElementById('theme-toggle');
 
     function formatBytes(bytes) {
       if (!bytes && bytes !== 0) return '0 B';
@@ -297,6 +299,19 @@
       }
     });
 
+    function setTheme(mode) {
+      document.body.classList.toggle('dark', mode === 'dark');
+      localStorage.setItem('sfd-theme', mode);
+      toggleBtn.textContent = mode === 'dark' ? 'Light mode' : 'Dark mode';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+      setTheme(next);
+    });
+
+    const savedTheme = localStorage.getItem('sfd-theme') || 'light';
+    setTheme(savedTheme);
     loadFiles();
   </script>
 </body>
