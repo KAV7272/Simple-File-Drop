@@ -243,8 +243,9 @@
 <body>
   <div class="overlay" id="login-overlay" style="display:none;">
     <div class="modal">
-      <h2>Login required</h2>
-      <p class="muted">Enter the password to access uploads.</p>
+      <h2 id="login-title">Login required</h2>
+      <p class="muted" id="login-subtitle">Enter your credentials to access uploads.</p>
+      <input id="username-input" class="inline-input" type="text" placeholder="Username" />
       <input id="password-input" class="inline-input" type="password" placeholder="Password" />
       <button id="login-button">Login</button>
       <div class="status" id="login-status"></div>
@@ -317,18 +318,29 @@
     const sortSelect = document.getElementById('sort-select');
     const selectAll = document.getElementById('select-all');
     const loginOverlay = document.getElementById('login-overlay');
+    const loginTitle = document.getElementById('login-title');
+    const loginSubtitle = document.getElementById('login-subtitle');
+    const usernameInput = document.getElementById('username-input');
     const passwordInput = document.getElementById('password-input');
     const loginBtn = document.getElementById('login-button');
     const loginStatus = document.getElementById('login-status');
     let cachedTree = [];
     let checkboxes = [];
     let authToken = localStorage.getItem('sfd-token') || '';
+    let isSetupMode = false;
 
-    function showLogin(message = '') {
+    function showLogin(message = '', mode = 'login') {
+      isSetupMode = mode === 'setup';
+      loginTitle.textContent = isSetupMode ? 'Create admin account' : 'Login required';
+      loginSubtitle.textContent = isSetupMode
+        ? 'Set a username and password to access uploads.'
+        : 'Enter your credentials to access uploads.';
+      loginBtn.textContent = isSetupMode ? 'Create & sign in' : 'Login';
       loginOverlay.style.display = 'flex';
       loginStatus.textContent = message;
+      usernameInput.value = '';
       passwordInput.value = '';
-      passwordInput.focus();
+      (isSetupMode ? usernameInput : passwordInput).focus();
     }
 
     function hideLogin() {
@@ -338,6 +350,22 @@
 
     function authHeaders() {
       return authToken ? { Authorization: `Bearer ${authToken}` } : {};
+    }
+
+    async function checkAuthState() {
+      try {
+        const res = await fetch('/api/auth/state');
+        const data = await res.json();
+        if (!data.configured) {
+          showLogin('Create an admin username and password.', 'setup');
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error(err);
+        showLogin('Could not reach server.');
+        return false;
+      }
     }
 
     function formatBytes(bytes) {
@@ -441,7 +469,9 @@
       try {
         const res = await fetch('/api/files', { headers: authHeaders() });
         if (res.status === 401) {
-          showLogin('Session expired. Please log in.');
+          const payload = await res.json().catch(() => ({}));
+          const requiresSetup = payload.error && payload.error.toLowerCase().includes('setup');
+          showLogin(requiresSetup ? 'Create an admin account to continue.' : 'Session expired. Please log in.', requiresSetup ? 'setup' : 'login');
           statusEl.textContent = '';
           return;
         }
@@ -700,22 +730,29 @@
         await loadFiles();
       } catch (err) {
         console.error(err);
-        statusEl.textContent = err.message || 'Could not delete some files.';
+        if (err.message === 'Unauthorized') {
+          showLogin('Please log in to delete files.');
+          statusEl.textContent = '';
+        } else {
+          statusEl.textContent = err.message || 'Could not delete some files.';
+        }
       }
     });
 
     loginBtn.addEventListener('click', async () => {
+      const username = usernameInput.value.trim();
       const password = passwordInput.value.trim();
-      if (!password) {
-        loginStatus.textContent = 'Enter a password.';
+      if (!username || !password) {
+        loginStatus.textContent = 'Enter a username and password.';
         return;
       }
-      loginStatus.textContent = 'Signing in...';
+      loginStatus.textContent = isSetupMode ? 'Creating account...' : 'Signing in...';
       try {
-        const res = await fetch('/api/login', {
+        const endpoint = isSetupMode ? '/api/auth/setup' : '/api/login';
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password }),
+          body: JSON.stringify({ username, password }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.token) throw new Error(data.error || 'Login failed');
@@ -734,7 +771,9 @@
 
     const savedTheme = localStorage.getItem('sfd-theme') || 'light';
     setTheme(savedTheme);
-    loadFiles().catch(() => showLogin());
+    checkAuthState().then((configured) => {
+      if (configured) loadFiles();
+    });
   </script>
 </body>
 </html>

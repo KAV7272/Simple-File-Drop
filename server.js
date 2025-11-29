@@ -6,10 +6,14 @@ const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'devpass';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const AUTH_SECRET = process.env.AUTH_SECRET || 'change-me-secret';
+const CREDS_PATH = process.env.CREDS_PATH || path.join(__dirname, 'credentials.json');
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Ensure creds file dir exists
+fs.mkdirSync(path.dirname(CREDS_PATH), { recursive: true });
 
 function cleanRelPath(p) {
   return p
@@ -78,23 +82,75 @@ async function collectFiles(baseDir, rel = '') {
   return results;
 }
 
-function tokenForPassword(password) {
-  return crypto.createHmac('sha256', AUTH_SECRET).update(password).digest('hex');
+function credsExist() {
+  return fs.existsSync(CREDS_PATH);
+}
+
+function loadCreds() {
+  if (!credsExist()) return null;
+  const raw = fs.readFileSync(CREDS_PATH, 'utf-8');
+  return JSON.parse(raw);
+}
+
+function getCreds() {
+  const existing = loadCreds();
+  if (existing) return existing;
+  if (ADMIN_PASSWORD) {
+    const username = ADMIN_USERNAME || 'admin';
+    const record = { username, ...hashPassword(ADMIN_PASSWORD) };
+    fs.writeFileSync(CREDS_PATH, JSON.stringify(record, null, 2));
+    return record;
+  }
+  return null;
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return { salt, hash };
+}
+
+function tokenForCreds(creds) {
+  return crypto.createHmac('sha256', AUTH_SECRET).update(`${creds.username}|${creds.hash}`).digest('hex');
+}
+
+function verifyPassword(password, creds) {
+  const hash = crypto.scryptSync(password, creds.salt, 64).toString('hex');
+  return hash === creds.hash;
 }
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token || token !== tokenForPassword(ADMIN_PASSWORD)) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  const creds = getCreds();
+  if (!creds) return res.status(401).json({ error: 'Setup required' });
+  const expected = tokenForCreds(creds);
+  if (!token || token !== expected) return res.status(401).json({ error: 'Unauthorized' });
   next();
 }
 
+app.get('/api/auth/state', (_req, res) => {
+  res.json({ configured: credsExist() || !!ADMIN_PASSWORD });
+});
+
+app.post('/api/auth/setup', (req, res) => {
+  if (credsExist() || ADMIN_PASSWORD) return res.status(400).json({ error: 'Already configured' });
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  const hashed = hashPassword(password);
+  const record = { username, ...hashed };
+  fs.writeFileSync(CREDS_PATH, JSON.stringify(record, null, 2));
+  res.json({ token: tokenForCreds(record) });
+});
+
 app.post('/api/login', (req, res) => {
-  const { password } = req.body || {};
-  if (!password || password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Invalid password' });
-  res.json({ token: tokenForPassword(ADMIN_PASSWORD) });
+  const { username, password } = req.body || {};
+  const creds = getCreds();
+  if (!creds) return res.status(401).json({ error: 'Setup required' });
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (username !== creds.username || !verifyPassword(password, creds)) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  res.json({ token: tokenForCreds(creds) });
 });
 
 app.get('/api/files', authMiddleware, async (_req, res) => {
