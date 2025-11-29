@@ -100,39 +100,46 @@
     button:hover:not(:disabled) { transform: translateY(-1px); }
     .files {
       display: grid;
-      gap: 12px;
+      gap: 6px;
       margin-top: 10px;
     }
-    .file {
+    .node {
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
-      display: grid;
-      gap: 6px;
+      border-radius: 10px;
+      padding: 10px;
       background: rgba(255, 255, 255, 0.02);
-    }
-    .file-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
     }
-    .file strong { word-break: break-all; }
-    .file-actions {
+    .node-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .node .name {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .node .muted { font-size: 13px; }
+    .node .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--chip-bg);
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .node-actions {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-    }
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: var(--chip-bg);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      font-size: 13px;
     }
     .link {
       text-decoration: none;
@@ -144,6 +151,17 @@
       transition: border-color 120ms ease;
     }
     .link:hover { border-color: var(--accent); }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--chip-bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
     .danger {
       background: none;
       color: var(--danger);
@@ -218,6 +236,17 @@
 
       <section class="card">
         <h2>Uploaded files</h2>
+        <div class="drop-actions" style="justify-content: space-between;">
+          <div class="muted">Browse your uploaded folders and files.</div>
+          <label class="muted" style="display:flex;align-items:center;gap:8px;">
+            Sort
+            <select id="sort-select" style="width:auto;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);">
+              <option value="name">Name</option>
+              <option value="date">Newest</option>
+              <option value="size">Size</option>
+            </select>
+          </label>
+        </div>
         <div id="files" class="files"></div>
         <div id="empty" class="empty" style="display:none">No files uploaded yet.</div>
       </section>
@@ -233,6 +262,8 @@
     const uploadBtn = document.getElementById('upload-button');
     const toggleBtn = document.getElementById('theme-toggle');
     const dropzone = document.getElementById('dropzone');
+    const sortSelect = document.getElementById('sort-select');
+    let cachedTree = [];
 
     function formatBytes(bytes) {
       if (!bytes && bytes !== 0) return '0 B';
@@ -242,30 +273,79 @@
       return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
     }
 
-    function render(files) {
+    function sortNodes(nodes) {
+      const mode = sortSelect.value || 'name';
+      const sorted = [...nodes].sort((a, b) => {
+        if (a.isDir && !b.isDir) return -1;
+        if (!a.isDir && b.isDir) return 1;
+        if (mode === 'size') return (b.size || 0) - (a.size || 0);
+        if (mode === 'date') return new Date(b.uploadedAt || 0) - new Date(a.uploadedAt || 0);
+        return a.name.localeCompare(b.name);
+      });
+      return sorted.map((node) =>
+        node.isDir ? { ...node, children: sortNodes(node.children || []) } : node,
+      );
+    }
+
+    function renderTree(nodes, depth = 0) {
+      nodes.forEach((node) => {
+        const row = document.createElement('div');
+        row.className = 'node';
+        const info = document.createElement('div');
+        info.className = 'node-info';
+        info.style.paddingLeft = `${depth * 14}px`;
+        const icon = document.createElement('div');
+        icon.className = 'icon';
+        icon.textContent = node.isDir ? '📁' : '📄';
+        const text = document.createElement('div');
+        text.style.minWidth = '0';
+        text.innerHTML = `<div class="name" title="${node.path}">${node.path}</div>${
+          node.isDir
+            ? `<div class="muted">${(node.children || []).length} item${(node.children || []).length === 1 ? '' : 's'}</div>`
+            : `<div class="muted">${new Date(node.uploadedAt).toLocaleString()}</div>`
+        }`;
+        info.appendChild(icon);
+        info.appendChild(text);
+        row.appendChild(info);
+
+        const actions = document.createElement('div');
+        actions.className = 'node-actions';
+        if (!node.isDir) {
+          const sizeChip = document.createElement('div');
+          sizeChip.className = 'chip';
+          sizeChip.textContent = formatBytes(node.size);
+          actions.appendChild(sizeChip);
+
+          const download = document.createElement('a');
+          download.className = 'link';
+          download.href = node.url;
+          download.download = '';
+          download.textContent = 'Download';
+          actions.appendChild(download);
+
+          const del = document.createElement('button');
+          del.className = 'danger';
+          del.textContent = 'Delete';
+          del.addEventListener('click', () => deleteFile(node.path));
+          actions.appendChild(del);
+        }
+        row.appendChild(actions);
+        filesEl.appendChild(row);
+        if (node.isDir && node.children?.length) {
+          renderTree(node.children, depth + 1);
+        }
+      });
+    }
+
+    function renderTreeRoot(tree) {
       filesEl.innerHTML = '';
-      if (!files.length) {
+      const sorted = sortNodes(tree);
+      if (!sorted.length) {
         emptyEl.style.display = 'block';
         return;
       }
       emptyEl.style.display = 'none';
-      files.forEach((file) => {
-        const div = document.createElement('div');
-        div.className = 'file';
-        div.innerHTML = `
-          <div class="file-header">
-            <strong title="${file.originalName || file.name}">${file.originalName || file.name}</strong>
-            <div class="chip">${formatBytes(file.size)}</div>
-          </div>
-          <div class="muted">${new Date(file.uploadedAt).toLocaleString()}</div>
-          <div class="file-actions">
-            <a class="link" href="${file.url}" download>Download</a>
-            <button class="danger" data-name="${file.name}">Delete</button>
-          </div>
-        `;
-        div.querySelector('.danger').addEventListener('click', () => deleteFile(file.name));
-        filesEl.appendChild(div);
-      });
+      renderTree(sorted);
     }
 
     async function loadFiles() {
@@ -274,7 +354,8 @@
         const res = await fetch('/api/files');
         if (!res.ok) throw new Error('Failed to fetch files');
         const data = await res.json();
-        render(data.files || []);
+        cachedTree = data.tree || [];
+        renderTreeRoot(cachedTree);
         statusEl.textContent = '';
       } catch (err) {
         console.error(err);
@@ -282,11 +363,11 @@
       }
     }
 
-    async function deleteFile(name) {
+    async function deleteFile(pathName) {
       if (!confirm('Delete this file from the server?')) return;
       statusEl.textContent = 'Deleting...';
       try {
-        const res = await fetch(`/api/files/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        const res = await fetch(`/api/files?path=${encodeURIComponent(pathName)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
         await loadFiles();
         statusEl.textContent = 'File removed.';
@@ -298,7 +379,12 @@
 
     function normalizeName(file) {
       const rel = file.webkitRelativePath || file.relativePath || file.name;
-      return rel.replace(/^[/\\]+/, '').replace(/[\\/]+/g, '__');
+      return rel
+        .replace(/\\/g, '/')
+        .split('/')
+        .filter(Boolean)
+        .map((part) => part.replace(/[^a-zA-Z0-9._-]/g, '_'))
+        .join('/');
     }
 
     async function uploadFiles(files) {
@@ -407,6 +493,8 @@
       const next = document.body.classList.contains('dark') ? 'light' : 'dark';
       setTheme(next);
     });
+
+    sortSelect.addEventListener('change', () => renderTreeRoot(cachedTree));
 
     const savedTheme = localStorage.getItem('sfd-theme') || 'light';
     setTheme(savedTheme);

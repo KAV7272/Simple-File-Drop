@@ -29,10 +29,10 @@ node server.js
 - `NODE_ENV=production` to disable Express error details.
 
 ## API
-- `GET /api/files` — list uploaded files.
-- `POST /api/upload` — multipart upload with field name `file`.
-- `DELETE /api/files/:name` — remove an uploaded file.
-- Files are served from `/uploads/:name` for downloading.
+- `GET /api/files` — list uploads as a tree (files include `path`, `size`, `uploadedAt`, `url`).
+- `POST /api/upload` — multipart upload with field name `files` (supports multiple files and folders).
+- `DELETE /api/files?path=<relativePath>` — remove an uploaded file.
+- Files are served from `/uploads/<relativePath>` for downloading.
 
 ## Notes
 - Max upload size is 50 MB (changeable in `server.js`).
