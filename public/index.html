@@ -6,21 +6,31 @@
   <title>Team Todo</title>
   <style>
     :root {
-      --bg: #070b16;
-      --card: #0d1424;
-      --panel: #0b1220;
+      --bg: #0f172a;
+      --card: #111827;
+      --panel: #0b1323;
+      --accent-start: #10b981;
+      --accent-end: #22c55e;
+      --muted: #cbd5e1;
+      --text: #f8fafc;
+      --danger: #ef4444;
+    }
+    .theme-light {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --panel: #f1f5f9;
+      --accent-start: #0284c7;
+      --accent-end: #0ea5e9;
+      --muted: #475569;
+      --text: #0f172a;
+      --danger: #ef4444;
+    }
+    .theme-dark {
+      --bg: #050816;
+      --card: #0a0f1f;
+      --panel: #050a16;
       --accent-start: #7c3aed;
       --accent-end: #a855f7;
-      --muted: #cbd5e1;
-      --text: #e2e8f0;
-      --danger: #f87171;
-    }
-    .theme-night {
-      --bg: #040611;
-      --card: #080c18;
-      --panel: #050915;
-      --accent-start: #5b21b6;
-      --accent-end: #7c3aed;
       --muted: #cbd5e1;
       --text: #e2e8f0;
       --danger: #f87171;
@@ -36,7 +46,7 @@
     header {
       padding: 24px;
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       gap: 12px;
     }
@@ -44,10 +54,8 @@
     .container {
       display: grid;
       gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       padding: 0 24px 32px;
-      max-width: 1200px;
-      margin: 0 auto;
     }
     .card {
       background: var(--card);
@@ -71,7 +79,7 @@
     button {
       cursor: pointer;
       background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-      color: #0c0413;
+      color: #052e16;
       font-weight: 700;
       border: none;
     }
@@ -110,26 +118,6 @@
     .dropdown-menu.open { display: block; }
     .dropdown-menu h4 { margin: 6px 0; }
     .divider { border-top: 1px solid #1f2937; margin: 8px 0; }
-    .tabs {
-      display: flex;
-      gap: 10px;
-      padding: 0 24px 12px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .tabs button {
-      background: #111827;
-      color: var(--text);
-      border: 1px solid #1f2937;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: 600;
-    }
-    .tabs button.active {
-      border-color: var(--accent-end);
-      box-shadow: 0 0 0 1px var(--accent-end);
-    }
-    .wide { grid-column: 1 / -1; }
     @media (max-width: 640px) { header { flex-direction: column; align-items: flex-start; gap: 10px; } }
   </style>
 </head>
@@ -138,7 +126,6 @@
   <h1>Team Todo</h1>
   <nav id="nav"></nav>
 </header>
-<div class="tabs" id="tabs"></div>
 <div class="container">
   <section class="card" id="auth-card">
     <h2>Welcome</h2>
@@ -185,7 +172,7 @@
     </form>
   </section>
 
-  <section class="card wide" id="create-task-card" style="display:none">
+  <section class="card" id="create-task-card" style="display:none">
     <h2>New task</h2>
     <form id="task-form" method="post" action="#" onsubmit="return false;">
       <label>Title</label>
@@ -199,7 +186,7 @@
     </form>
   </section>
 
-  <section class="card wide" id="tasks-card" style="display:none">
+  <section class="card" id="tasks-card" style="display:none">
     <h2>Team tasks</h2>
     <div class="list" id="tasks"></div>
   </section>
@@ -209,10 +196,31 @@
     <div class="list" id="notifications"></div>
   </section>
 
+  <section class="card" id="settings-card" style="display:none">
+    <h2>Settings</h2>
+    <div style="margin-bottom:12px;">
+      <div class="pill">Version <span id="app-version"></span></div>
+      <p style="margin:6px 0 0;color:var(--muted);">Lightweight self-hosted team todo.</p>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>Theme</label>
+      <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+        <button type="button" class="ghost" data-theme="default">Default</button>
+        <button type="button" class="ghost" data-theme="light">Light</button>
+        <button type="button" class="ghost" data-theme="dark">Night</button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label>Notifications</label>
+      <button type="button" class="secondary" id="enable-browser">Enable browser banners</button>
+      <small style="display:block;color:var(--muted);margin-top:6px;">Requires allowing notifications in your browser (best over HTTPS).</small>
+    </div>
+    <button type="button" class="secondary" id="logout-settings">Log out</button>
+  </section>
 </div>
 
 <script>
-  const APP_VERSION = '1.1.0';
+  const APP_VERSION = '1.0.0';
   const chimeAudio = new Audio('data:audio/wav;base64,UklGRtQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YYwAAACAgICAgICAf39/f39/f39/f4CAgICAf39/f39/f4CAgICAf39/f39/gICAgICAgH9/f39/f4CAgICAgH9/f39/f4CAgICAgH9/f39/f39/gICAgICAgH9/f39/f4CAgICAgH9/f39/f4CAgICA');
   chimeAudio.volume = 0.35;
   const state = {
@@ -221,8 +229,7 @@
     users: [],
     tasks: [],
     notifications: [],
-    theme: localStorage.getItem('theme') || 'night',
-    activeTab: 'tasks',
+    theme: localStorage.getItem('theme') || 'default',
     lastNotificationIds: new Set(),
     pollTimer: null
   };
@@ -233,7 +240,6 @@
   const createTaskCard = document.getElementById('create-task-card');
   const tasksCard = document.getElementById('tasks-card');
   const notificationsCard = document.getElementById('notifications-card');
-  const tabsEl = document.getElementById('tabs');
 
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
@@ -259,8 +265,9 @@
   }
 
   function applyTheme(theme = state.theme) {
-    document.body.classList.remove('theme-night');
-    if (theme === 'night') document.body.classList.add('theme-night');
+    document.body.classList.remove('theme-light', 'theme-dark');
+    if (theme === 'light') document.body.classList.add('theme-light');
+    if (theme === 'dark') document.body.classList.add('theme-dark');
     themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.theme === theme));
   }
 
@@ -301,7 +308,6 @@
     state.users = [];
     state.tasks = [];
     state.notifications = [];
-    state.activeTab = 'tasks';
     stopNotificationPolling();
     render();
   }
@@ -359,10 +365,11 @@
       </div>
       <div class="divider"></div>
       <div>
-        <h4>Theme</h4>
+        <h4>Themes</h4>
         <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));">
           <button type="button" class="ghost" data-theme="default">Default</button>
-          <button type="button" class="ghost" data-theme="night">Night</button>
+          <button type="button" class="ghost" data-theme="light">Light</button>
+          <button type="button" class="ghost" data-theme="dark">Night</button>
         </div>
       </div>
       <div class="divider"></div>
@@ -381,7 +388,7 @@
     me.textContent = `${state.user.name} (${state.user.email})`;
     me.style.color = 'var(--muted)';
 
-    nav.append(me, left);
+    nav.append(left, me);
 
     // wire up dropdown
     let open = false;
@@ -407,30 +414,6 @@
     if (enableBrowserBtn) enableBrowserBtn.addEventListener('click', requestBrowserNotifications);
     if (logoutSettingsBtn) logoutSettingsBtn.addEventListener('click', logout);
     applyTheme(state.theme);
-  }
-
-  function renderTabs() {
-    tabsEl.innerHTML = '';
-    if (!state.user) {
-      tabsEl.style.display = 'none';
-      return;
-    }
-    tabsEl.style.display = 'flex';
-    const tabs = [
-      { id: 'tasks', label: 'Tasks' },
-      { id: 'notifications', label: 'Notifications' },
-      { id: 'team', label: 'Team' }
-    ];
-    tabs.forEach((t) => {
-      const btn = document.createElement('button');
-      btn.textContent = t.label;
-      btn.classList.toggle('active', state.activeTab === t.id);
-      btn.onclick = () => {
-        state.activeTab = t.id;
-        render();
-      };
-      tabsEl.appendChild(btn);
-    });
   }
 
   function renderTeam() {
@@ -522,16 +505,12 @@
 
   function render() {
     renderNav();
-    renderTabs();
     const authenticated = Boolean(state.user);
     authCard.style.display = authenticated ? 'none' : 'block';
-    const showTasks = authenticated && state.activeTab === 'tasks';
-    const showNotifications = authenticated && state.activeTab === 'notifications';
-    const showTeam = authenticated && state.activeTab === 'team';
-    teamCard.style.display = showTeam ? 'block' : 'none';
-    createTaskCard.style.display = showTasks ? 'block' : 'none';
-    tasksCard.style.display = showTasks ? 'block' : 'none';
-    notificationsCard.style.display = showNotifications ? 'block' : 'none';
+    teamCard.style.display = authenticated ? 'block' : 'none';
+    createTaskCard.style.display = authenticated ? 'block' : 'none';
+    tasksCard.style.display = authenticated ? 'block' : 'none';
+    notificationsCard.style.display = authenticated ? 'block' : 'none';
     if (authenticated) {
       renderTeam();
       renderUsers();

@@ -15,15 +15,13 @@ const db = new sqlite3.Database(DB_PATH);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Avoid browsers/proxies caching the main HTML so UI updates deploy cleanly
+// Prevent caching of HTML so UI updates always load fresh
 app.use((req, res, next) => {
   if (req.path === '/' || req.path.endsWith('.html')) {
     res.set('Cache-Control', 'no-store');
   }
   next();
 });
-
 app.use(express.static(path.join(__dirname, 'public')));
 
 function run(sql, params = []) {
@@ -346,7 +344,6 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Fallback for accidental form posts to root so the SPA still loads
 app.post('*', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
