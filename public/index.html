@@ -328,6 +328,7 @@
     let checkboxes = [];
     let authToken = localStorage.getItem('sfd-token') || '';
     let isSetupMode = false;
+    let expandedPaths = new Set();
 
     function showLogin(message = '', mode = 'login') {
       isSetupMode = mode === 'setup';
@@ -418,6 +419,27 @@
             : `<div class="muted">${new Date(node.uploadedAt).toLocaleString()}</div>`
         }`;
         info.appendChild(select);
+        if (node.isDir) {
+          const caret = document.createElement('button');
+          caret.type = 'button';
+          caret.style.border = 'none';
+          caret.style.background = 'transparent';
+          caret.style.cursor = 'pointer';
+          caret.style.color = 'var(--muted)';
+          caret.style.fontSize = '14px';
+          caret.style.display = 'grid';
+          caret.style.placeItems = 'center';
+          caret.textContent = expandedPaths.has(node.path) ? '▾' : '▸';
+          caret.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDir(node.path);
+          });
+          info.appendChild(caret);
+        } else {
+          const spacer = document.createElement('div');
+          spacer.style.width = '12px';
+          info.appendChild(spacer);
+        }
         info.appendChild(icon);
         info.appendChild(text);
         row.appendChild(info);
@@ -445,7 +467,7 @@
         }
         row.appendChild(actions);
         filesEl.appendChild(row);
-        if (node.isDir && node.children?.length) {
+        if (node.isDir && expandedPaths.has(node.path) && node.children?.length) {
           renderTree(node.children, depth + 1);
         }
       });
@@ -459,6 +481,12 @@
         return;
       }
       emptyEl.style.display = 'none';
+      // Expand top-level folders by default on first render
+      if (expandedPaths.size === 0) {
+        sorted.forEach((node) => {
+          if (node.isDir) expandedPaths.add(node.path);
+        });
+      }
       renderTree(sorted);
       checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-path]'));
       updateSelected();
@@ -542,6 +570,12 @@
       document.getElementById('delete-selected').disabled = checked.length === 0;
       selectAll.checked = checkboxes.length > 0 && checked.length === checkboxes.length;
       return checked;
+    }
+
+    function toggleDir(path) {
+      if (expandedPaths.has(path)) expandedPaths.delete(path);
+      else expandedPaths.add(path);
+      renderTreeRoot(cachedTree);
     }
 
     selectAll.addEventListener('change', () => {
