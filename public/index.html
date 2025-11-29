@@ -328,7 +328,7 @@
     let checkboxes = [];
     let authToken = localStorage.getItem('sfd-token') || '';
     let isSetupMode = false;
-    let expandedPaths = new Set();
+    let expandedPaths = new Set(JSON.parse(localStorage.getItem('sfd-expanded') || '[]'));
 
     function showLogin(message = '', mode = 'login') {
       isSetupMode = mode === 'setup';
@@ -391,13 +391,26 @@
       );
     }
 
+    function folderPathLabel(node) {
+      const parts = node.path.split('/');
+      parts.pop();
+      return parts.join('/') || '/';
+    }
+
     function renderTree(nodes, depth = 0) {
       nodes.forEach((node) => {
         const row = document.createElement('div');
         row.className = 'node';
+        if (node.isDir) {
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'input') return;
+            toggleDir(node.path);
+          });
+        }
         const info = document.createElement('div');
         info.className = 'node-info';
-        info.style.paddingLeft = `${depth * 14}px`;
+        info.style.paddingLeft = `${depth * 16}px`;
 
         const select = document.createElement('div');
         select.className = 'select-box';
@@ -413,10 +426,10 @@
 
         const text = document.createElement('div');
         text.style.minWidth = '0';
-        text.innerHTML = `<div class="name" title="${node.path}">${node.path}</div>${
+        text.innerHTML = `<div class="name" title="${node.path}">${node.name}</div>${
           node.isDir
-            ? `<div class="muted">${(node.children || []).length} item${(node.children || []).length === 1 ? '' : 's'}</div>`
-            : `<div class="muted">${new Date(node.uploadedAt).toLocaleString()}</div>`
+            ? `<div class="muted">${(node.children || []).length} item${(node.children || []).length === 1 ? '' : 's'} · ${folderPathLabel(node)}</div>`
+            : `<div class="muted">${new Date(node.uploadedAt).toLocaleString()} · ${folderPathLabel(node)}</div>`
         }`;
         info.appendChild(select);
         if (node.isDir) {
@@ -446,7 +459,12 @@
 
         const actions = document.createElement('div');
         actions.className = 'node-actions';
-        if (!node.isDir) {
+        if (node.isDir) {
+          const dirChip = document.createElement('div');
+          dirChip.className = 'chip';
+          dirChip.textContent = `${(node.children || []).length} item${(node.children || []).length === 1 ? '' : 's'}`;
+          actions.appendChild(dirChip);
+        } else {
           const sizeChip = document.createElement('div');
           sizeChip.className = 'chip';
           sizeChip.textContent = formatBytes(node.size);
@@ -456,13 +474,19 @@
           download.className = 'link';
           download.type = 'button';
           download.textContent = 'Download';
-          download.addEventListener('click', () => downloadFile(node));
+          download.addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadFile(node);
+          });
           actions.appendChild(download);
 
           const del = document.createElement('button');
           del.className = 'danger';
           del.textContent = 'Delete';
-          del.addEventListener('click', () => deleteFile(node.path));
+          del.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteFile(node.path);
+          });
           actions.appendChild(del);
         }
         row.appendChild(actions);
@@ -486,6 +510,7 @@
         sorted.forEach((node) => {
           if (node.isDir) expandedPaths.add(node.path);
         });
+        localStorage.setItem('sfd-expanded', JSON.stringify(Array.from(expandedPaths)));
       }
       renderTree(sorted);
       checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-path]'));
@@ -575,6 +600,7 @@
     function toggleDir(path) {
       if (expandedPaths.has(path)) expandedPaths.delete(path);
       else expandedPaths.add(path);
+      localStorage.setItem('sfd-expanded', JSON.stringify(Array.from(expandedPaths)));
       renderTreeRoot(cachedTree);
     }
 
