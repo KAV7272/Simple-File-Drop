@@ -2,7 +2,8 @@
 
 Tiny self-hosted file upload web app. One container runs both the API and a minimal HTML UI.
 
-![Simple File Drop preview](docs/preview.svg)
+![Simple File Drop preview (dark)](docs/preview-dark.svg)
+![Simple File Drop preview (light)](docs/preview-light.svg)
 
 ## Quick start (Docker)
 ```bash
