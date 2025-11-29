@@ -617,10 +617,12 @@
         return;
       }
       const data = new FormData();
-      files.forEach((file) => {
-        const named = new File([file], normalizeName(file), { type: file.type });
+      const relPaths = files.map((file) => normalizeName(file));
+      files.forEach((file, idx) => {
+        const named = new File([file], relPaths[idx], { type: file.type });
         data.append('files', named);
       });
+      data.append('paths', JSON.stringify(relPaths));
       const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
       statusEl.textContent = `Uploading ${files.length} file${files.length > 1 ? 's' : ''}...`;
       uploadBtn.disabled = true;

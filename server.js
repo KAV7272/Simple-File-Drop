@@ -25,21 +25,11 @@ function cleanRelPath(p) {
 }
 
 const storage = multer.diskStorage({
-  destination: async (_req, file, cb) => {
-    try {
-      const rel = cleanRelPath(file.originalname);
-      const dir = path.dirname(rel);
-      const target = path.join(UPLOAD_DIR, dir);
-      await fs.promises.mkdir(target, { recursive: true });
-      cb(null, target);
-    } catch (err) {
-      cb(err);
-    }
-  },
+  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
-    const rel = cleanRelPath(file.originalname);
-    const safeBase = path.basename(rel);
-    cb(null, safeBase);
+    const safeOriginal = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const unique = `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}-${safeOriginal}`;
+    cb(null, unique);
   },
 });
 
@@ -164,17 +154,41 @@ app.get('/api/files', authMiddleware, async (_req, res) => {
   }
 });
 
-app.post('/api/upload', authMiddleware, upload.array('files'), (req, res) => {
+app.post('/api/upload', authMiddleware, upload.array('files'), async (req, res) => {
   const files = req.files || [];
   if (!files.length) return res.status(400).json({ error: 'No files uploaded' });
-  res.json({
-    files: files.map((f) => ({
-      name: f.filename,
-      originalName: f.originalname,
-      size: f.size,
-      url: `/uploads/${encodeURIComponent(f.filename)}`,
-    })),
-  });
+  let paths = [];
+  try {
+    if (req.body.paths) {
+      paths = JSON.parse(req.body.paths);
+    }
+  } catch (err) {
+    console.error('Failed to parse paths', err);
+  }
+
+  try {
+    const saved = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const relRaw = paths[i] || f.originalname || f.filename;
+      const rel = cleanRelPath(relRaw);
+      if (!rel) throw new Error('Invalid path');
+      const targetDir = path.join(UPLOAD_DIR, path.dirname(rel));
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      const targetPath = path.join(UPLOAD_DIR, rel);
+      await fs.promises.rename(f.path, targetPath);
+      saved.push({
+        name: path.basename(rel),
+        path: rel,
+        size: f.size,
+        url: `/uploads/${encodeURIComponent(rel).replace(/%2F/g, '/')}`,
+      });
+    }
+    res.json({ files: saved });
+  } catch (err) {
+    console.error('Upload handling failed', err);
+    res.status(500).json({ error: 'Could not save files' });
+  }
 });
 
 app.delete('/api/files', authMiddleware, async (req, res) => {
