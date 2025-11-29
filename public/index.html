@@ -3,648 +3,301 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Team Todo</title>
+  <title>Simple File Drop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #111827;
-      --panel: #0b1323;
-      --accent-start: #10b981;
-      --accent-end: #22c55e;
-      --muted: #cbd5e1;
-      --text: #f8fafc;
-      --danger: #ef4444;
-    }
-    .theme-light {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --panel: #f1f5f9;
-      --accent-start: #0284c7;
-      --accent-end: #0ea5e9;
-      --muted: #475569;
-      --text: #0f172a;
-      --danger: #ef4444;
-    }
-    .theme-dark {
-      --bg: #050816;
-      --card: #0a0f1f;
-      --panel: #050a16;
-      --accent-start: #7c3aed;
-      --accent-end: #a855f7;
-      --muted: #cbd5e1;
+      --bg: #0b1021;
+      --panel: #0f172a;
+      --card: rgba(255, 255, 255, 0.02);
+      --accent: #22c55e;
+      --accent-2: #06b6d4;
+      --muted: #94a3b8;
       --text: #e2e8f0;
-      --danger: #f87171;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, sans-serif;
-      background: radial-gradient(circle at 10% 20%, #1e293b, var(--bg) 55%);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 10% 20%, #0f172a, #0b1021 45%), radial-gradient(circle at 80% 0%, #0f172a, #0b1021 40%);
       color: var(--text);
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 18px 46px;
+    }
+    .shell {
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 18px;
     }
     header {
-      padding: 24px;
       display: flex;
-      justify-content: flex-start;
+      justify-content: space-between;
       align-items: center;
-      gap: 12px;
+      background: linear-gradient(145deg, rgba(34,197,94,0.08), rgba(6,182,212,0.05));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
     }
     h1 { margin: 0; font-size: 24px; letter-spacing: 0.5px; }
-    .container {
+    header p { margin: 2px 0 0; color: var(--muted); }
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .grid {
       display: grid;
-      gap: 16px;
+      gap: 18px;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      padding: 0 24px 32px;
     }
     .card {
       background: var(--card);
-      border: 1px solid #1f2937;
-      border-radius: 12px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
       padding: 18px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
     }
-    .card h2 { margin: 0 0 12px; font-size: 18px; }
-    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
-    input, select, textarea, button {
+    .card h2 { margin: 0 0 10px; font-size: 18px; }
+    .muted { color: var(--muted); margin: 0; }
+    form {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    label { font-weight: 600; font-size: 14px; }
+    input[type="file"] {
       width: 100%;
-      border-radius: 8px;
-      border: 1px solid #1f2937;
-      background: #0b1323;
-      color: var(--text);
       padding: 10px;
-      margin-bottom: 10px;
-      font-size: 14px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--muted);
+      cursor: pointer;
     }
     button {
-      cursor: pointer;
-      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-      color: #052e16;
-      font-weight: 700;
       border: none;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #04130b;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+      box-shadow: 0 14px 35px rgba(34, 197, 94, 0.22);
     }
-    button.secondary { background: #1f2937; color: var(--text); border: 1px solid #334155; }
-    button.ghost { background: transparent; border: 1px solid #334155; color: var(--text); }
-    button.active { outline: 2px solid var(--accent); }
-    .error { color: var(--danger); font-size: 13px; margin: 4px 0; }
-    .list { display: grid; gap: 12px; }
-    .task { border: 1px solid #1f2937; border-radius: 10px; padding: 12px; background: var(--panel); }
-    .task small { color: var(--muted); }
-    .pill {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 8px;
-      background: #1f2937;
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:hover:not(:disabled) { transform: translateY(-1px); }
+    .files {
+      display: grid;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .file {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .file-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .file strong { word-break: break-all; }
+    .file-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
       color: var(--muted);
-      font-size: 12px;
-      margin-right: 6px;
+      font-size: 13px;
     }
-    .badge { background: var(--accent); color: #052e16; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
-    nav { display: flex; gap: 8px; align-items: center; }
-    .dropdown { position: relative; }
-    .dropdown-menu {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      min-width: 220px;
-      background: var(--card);
-      border: 1px solid #1f2937;
+    .link {
+      text-decoration: none;
+      color: var(--text);
+      padding: 8px 10px;
       border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-      z-index: 10;
-      display: none;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      transition: border-color 120ms ease;
     }
-    .dropdown-menu.open { display: block; }
-    .dropdown-menu h4 { margin: 6px 0; }
-    .divider { border-top: 1px solid #1f2937; margin: 8px 0; }
-    @media (max-width: 640px) { header { flex-direction: column; align-items: flex-start; gap: 10px; } }
+    .link:hover { border-color: var(--accent); }
+    .danger {
+      background: none;
+      color: #fca5a5;
+      border: 1px solid rgba(248,113,113,0.35);
+      box-shadow: none;
+      padding: 8px 10px;
+    }
+    .status { color: var(--muted); min-height: 18px; font-size: 14px; }
+    .empty {
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      color: var(--muted);
+      text-align: center;
+    }
+    @media (max-width: 640px) {
+      .file-header { flex-direction: column; align-items: flex-start; }
+      header { flex-direction: column; align-items: flex-start; gap: 6px; }
+    }
   </style>
 </head>
 <body>
-<header>
-  <h1>Team Todo</h1>
-  <nav id="nav"></nav>
-</header>
-<div class="container">
-  <section class="card" id="auth-card">
-    <h2>Welcome</h2>
-    <div id="auth-forms">
-      <form id="login-form" method="post" action="#" onsubmit="return false;">
-        <h3>Login</h3>
-        <label>Email</label>
-        <input type="email" name="email" required />
-        <label>Password</label>
-        <input type="password" name="password" required />
-        <button type="submit">Sign in</button>
-        <div class="error" id="login-error"></div>
-      </form>
-      <hr />
-      <form id="register-form" method="post" action="#" onsubmit="return false;">
-        <h3>Create an account</h3>
-        <label>Name</label>
-        <input type="text" name="name" required />
-        <label>Email</label>
-        <input type="email" name="email" required />
-        <label>Password</label>
-        <input type="password" name="password" required />
-        <label>Team name (optional)</label>
-        <input type="text" name="teamName" placeholder="Defaults to your personal team" />
-        <button type="submit">Register</button>
-        <div class="error" id="register-error"></div>
-      </form>
-    </div>
-  </section>
-
-  <section class="card" id="team-card" style="display:none">
-    <h2>Team</h2>
-    <div id="team-info"></div>
-    <form id="create-team-form" method="post" action="#" onsubmit="return false;">
-      <label>New team name</label>
-      <input name="name" placeholder="Create a new team" required />
-      <button type="submit">Create & switch</button>
-    </form>
-    <form id="join-team-form" method="post" action="#" onsubmit="return false;">
-      <label>Join with invite code</label>
-      <input name="invite" placeholder="e.g. ABC123" required />
-      <button type="submit" class="secondary">Join team</button>
-      <div class="error" id="team-error"></div>
-    </form>
-  </section>
-
-  <section class="card" id="create-task-card" style="display:none">
-    <h2>New task</h2>
-    <form id="task-form" method="post" action="#" onsubmit="return false;">
-      <label>Title</label>
-      <input name="title" required />
-      <label>Description</label>
-      <textarea name="description" rows="3"></textarea>
-      <label>Assign to</label>
-      <select name="assignedTo" id="assignee-select"></select>
-      <button type="submit">Create task</button>
-      <div class="error" id="task-error"></div>
-    </form>
-  </section>
-
-  <section class="card" id="tasks-card" style="display:none">
-    <h2>Team tasks</h2>
-    <div class="list" id="tasks"></div>
-  </section>
-
-  <section class="card" id="notifications-card" style="display:none">
-    <h2>Notifications</h2>
-    <div class="list" id="notifications"></div>
-  </section>
-
-  <section class="card" id="settings-card" style="display:none">
-    <h2>Settings</h2>
-    <div style="margin-bottom:12px;">
-      <div class="pill">Version <span id="app-version"></span></div>
-      <p style="margin:6px 0 0;color:var(--muted);">Lightweight self-hosted team todo.</p>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label>Theme</label>
-      <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
-        <button type="button" class="ghost" data-theme="default">Default</button>
-        <button type="button" class="ghost" data-theme="light">Light</button>
-        <button type="button" class="ghost" data-theme="dark">Night</button>
-      </div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label>Notifications</label>
-      <button type="button" class="secondary" id="enable-browser">Enable browser banners</button>
-      <small style="display:block;color:var(--muted);margin-top:6px;">Requires allowing notifications in your browser (best over HTTPS).</small>
-    </div>
-    <button type="button" class="secondary" id="logout-settings">Log out</button>
-  </section>
-</div>
-
-<script>
-  const APP_VERSION = '1.0.0';
-  const chimeAudio = new Audio('data:audio/wav;base64,UklGRtQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YYwAAACAgICAgICAf39/f39/f39/f4CAgICAf39/f39/f4CAgICAf39/f39/gICAgICAgH9/f39/f4CAgICAgH9/f39/f4CAgICAgH9/f39/f39/gICAgICAgH9/f39/f4CAgICAgH9/f39/f4CAgICA');
-  chimeAudio.volume = 0.35;
-  const state = {
-    token: localStorage.getItem('token'),
-    user: null,
-    users: [],
-    tasks: [],
-    notifications: [],
-    theme: localStorage.getItem('theme') || 'default',
-    lastNotificationIds: new Set(),
-    pollTimer: null
-  };
-
-  const nav = document.getElementById('nav');
-  const authCard = document.getElementById('auth-card');
-  const teamCard = document.getElementById('team-card');
-  const createTaskCard = document.getElementById('create-task-card');
-  const tasksCard = document.getElementById('tasks-card');
-  const notificationsCard = document.getElementById('notifications-card');
-
-  const loginForm = document.getElementById('login-form');
-  const registerForm = document.getElementById('register-form');
-  const createTeamForm = document.getElementById('create-team-form');
-  const joinTeamForm = document.getElementById('join-team-form');
-  const taskForm = document.getElementById('task-form');
-
-  const loginError = document.getElementById('login-error');
-  const registerError = document.getElementById('register-error');
-  const teamError = document.getElementById('team-error');
-  const taskError = document.getElementById('task-error');
-
-  const teamInfo = document.getElementById('team-info');
-  const tasksList = document.getElementById('tasks');
-  const notificationsList = document.getElementById('notifications');
-  const assigneeSelect = document.getElementById('assignee-select');
-  let themeButtons = [];
-  let enableBrowserBtn = null;
-  let logoutSettingsBtn = null;
-
-  function authHeaders() {
-    return state.token ? { Authorization: `Bearer ${state.token}`, 'Content-Type': 'application/json' } : {};
-  }
-
-  function applyTheme(theme = state.theme) {
-    document.body.classList.remove('theme-light', 'theme-dark');
-    if (theme === 'light') document.body.classList.add('theme-light');
-    if (theme === 'dark') document.body.classList.add('theme-dark');
-    themeButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.theme === theme));
-  }
-
-  function setTheme(theme) {
-    state.theme = theme;
-    localStorage.setItem('theme', theme);
-    applyTheme(theme);
-  }
-
-  function playChime() {
-    try {
-      chimeAudio.currentTime = 0;
-      chimeAudio.play().catch(() => {});
-    } catch (_) {}
-  }
-
-  function browserNotify(message) {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') {
-      new Notification('Team Todo', { body: message });
-    }
-  }
-
-  function requestBrowserNotifications() {
-    if (!('Notification' in window)) {
-      alert('Notifications not supported in this browser.');
-      return;
-    }
-    Notification.requestPermission().then((perm) => {
-      if (perm !== 'granted') alert('Enable notifications to see banners.');
-    });
-  }
-
-  function logout() {
-    localStorage.removeItem('token');
-    state.token = null;
-    state.user = null;
-    state.users = [];
-    state.tasks = [];
-    state.notifications = [];
-    stopNotificationPolling();
-    render();
-  }
-
-  function startNotificationPolling() {
-    if (state.pollTimer) clearInterval(state.pollTimer);
-    state.pollTimer = setInterval(() => loadNotifications(false), 3000);
-  }
-
-  function stopNotificationPolling() {
-    if (state.pollTimer) clearInterval(state.pollTimer);
-    state.pollTimer = null;
-  }
-
-  async function api(path, options = {}) {
-    const headers = { ...authHeaders(), ...(options.headers || {}) };
-    if (options.body && !headers['Content-Type']) {
-      headers['Content-Type'] = 'application/json';
-    }
-    const res = await fetch(path, {
-      ...options,
-      headers
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Request failed' }));
-      throw new Error(err.error || 'Request failed');
-    }
-    return res.json();
-  }
-
-  function renderNav() {
-    nav.innerHTML = '';
-    if (!state.user) return;
-    const left = document.createElement('div');
-    left.style.display = 'flex';
-    left.style.alignItems = 'center';
-    left.style.gap = '8px';
-
-    const dropdown = document.createElement('div');
-    dropdown.className = 'dropdown';
-
-    const toggle = document.createElement('button');
-    toggle.className = 'secondary';
-    toggle.type = 'button';
-    toggle.textContent = 'Settings ▾';
-
-    const menu = document.createElement('div');
-    menu.className = 'dropdown-menu';
-    menu.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <strong>Settings</strong>
-          <div style="color:var(--muted);font-size:12px;">v${APP_VERSION}</div>
-        </div>
-      </div>
-      <div class="divider"></div>
+  <div class="shell">
+    <header>
       <div>
-        <h4>Themes</h4>
-        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));">
-          <button type="button" class="ghost" data-theme="default">Default</button>
-          <button type="button" class="ghost" data-theme="light">Light</button>
-          <button type="button" class="ghost" data-theme="dark">Night</button>
-        </div>
+        <h1>Simple File Drop</h1>
+        <p class="muted">Upload, list, download, and remove files on your own server.</p>
       </div>
-      <div class="divider"></div>
-      <div>
-        <h4>Notifications</h4>
-        <button type="button" class="secondary" id="enable-browser">Enable browser banners</button>
+      <div class="pill">
+        <span>🚢 Self-host ready</span>
       </div>
-      <div class="divider"></div>
-      <button type="button" class="secondary" id="logout-settings">Log out</button>
-    `;
+    </header>
 
-    dropdown.append(toggle, menu);
-    left.appendChild(dropdown);
+    <div class="grid">
+      <section class="card">
+        <h2>Upload a file</h2>
+        <p class="muted">Files are saved to the server disk under <code>/uploads</code>.</p>
+        <form id="upload-form">
+          <label for="file-input">Choose a file</label>
+          <input id="file-input" name="file" type="file" required />
+          <button type="submit" id="upload-button">Upload</button>
+          <div class="status" id="status"></div>
+        </form>
+      </section>
 
-    const me = document.createElement('span');
-    me.textContent = `${state.user.name} (${state.user.email})`;
-    me.style.color = 'var(--muted)';
+      <section class="card">
+        <h2>Uploaded files</h2>
+        <div id="files" class="files"></div>
+        <div id="empty" class="empty" style="display:none">No files uploaded yet.</div>
+      </section>
+    </div>
+  </div>
 
-    nav.append(left, me);
+  <script>
+    const filesEl = document.getElementById('files');
+    const emptyEl = document.getElementById('empty');
+    const form = document.getElementById('upload-form');
+    const fileInput = document.getElementById('file-input');
+    const statusEl = document.getElementById('status');
+    const uploadBtn = document.getElementById('upload-button');
 
-    // wire up dropdown
-    let open = false;
-    const closeMenu = () => {
-      open = false;
-      menu.classList.remove('open');
-    };
-    toggle.onclick = (e) => {
-      e.stopPropagation();
-      open = !open;
-      menu.classList.toggle('open', open);
-    };
-    const outsideHandler = (e) => {
-      if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
-    };
-    document.addEventListener('click', outsideHandler);
-    menu.addEventListener('click', (e) => e.stopPropagation());
-
-    themeButtons = Array.from(menu.querySelectorAll('[data-theme]'));
-    enableBrowserBtn = menu.querySelector('#enable-browser');
-    logoutSettingsBtn = menu.querySelector('#logout-settings');
-    themeButtons.forEach((btn) => btn.addEventListener('click', () => setTheme(btn.dataset.theme)));
-    if (enableBrowserBtn) enableBrowserBtn.addEventListener('click', requestBrowserNotifications);
-    if (logoutSettingsBtn) logoutSettingsBtn.addEventListener('click', logout);
-    applyTheme(state.theme);
-  }
-
-  function renderTeam() {
-    if (!state.user) return;
-    if (state.user.team) {
-      teamInfo.innerHTML = `<div><div class="pill">${state.user.team.name}</div><small>Invite code: ${state.user.team.invite_code}</small></div>`;
+    function formatBytes(bytes) {
+      if (!bytes && bytes !== 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      const value = bytes / Math.pow(1024, i);
+      return `${value.toFixed(value >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
     }
-  }
 
-  function renderUsers() {
-    assigneeSelect.innerHTML = '<option value="">Unassigned</option>';
-    state.users.forEach((u) => {
-      const opt = document.createElement('option');
-      opt.value = u.id;
-      opt.textContent = u.name;
-      assigneeSelect.appendChild(opt);
-    });
-  }
-
-  function renderTasks() {
-    tasksList.innerHTML = '';
-    if (!state.tasks.length) {
-      tasksList.innerHTML = '<small>No tasks yet</small>';
-      return;
-    }
-    state.tasks.forEach((task) => {
-      const div = document.createElement('div');
-      div.className = 'task';
-      div.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <strong>${task.title}</strong>
-          <span class="badge">${task.status}</span>
-        </div>
-        <p>${task.description || ''}</p>
-        <small>Assigned to: ${task.assigned_name || 'Unassigned'}</small>
-      `;
-
-      const footer = document.createElement('div');
-      footer.style.display = 'flex';
-      footer.style.gap = '6px';
-      footer.style.marginTop = '8px';
-
-      const select = document.createElement('select');
-      select.innerHTML = '<option value="">Unassigned</option>' + state.users.map((u) => `<option value="${u.id}" ${task.assigned_to === u.id ? 'selected' : ''}>${u.name}</option>`).join('');
-      select.onchange = async () => {
-        await updateTask(task.id, { assignedTo: select.value || null });
-      };
-
-      const statusSelect = document.createElement('select');
-      ['open', 'in_progress', 'done'].forEach((s) => {
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (task.status === s) opt.selected = true;
-        statusSelect.appendChild(opt);
-      });
-      statusSelect.onchange = async () => {
-        await updateTask(task.id, { status: statusSelect.value });
-      };
-
-      footer.append(select, statusSelect);
-      div.appendChild(footer);
-      tasksList.appendChild(div);
-    });
-  }
-
-  function renderNotifications() {
-    notificationsList.innerHTML = '';
-    if (!state.notifications.length) {
-      notificationsList.innerHTML = '<small>No notifications</small>';
-      return;
-    }
-    state.notifications.forEach((n) => {
-      const div = document.createElement('div');
-      div.className = 'task';
-      div.innerHTML = `<strong>${n.message}</strong><br/><small>${new Date(n.created_at).toLocaleString()}</small>`;
-      if (!n.read) {
-        const btn = document.createElement('button');
-        btn.textContent = 'Mark read';
-        btn.onclick = async () => {
-          await api(`/api/notifications/${n.id}/read`, { method: 'POST' });
-          loadNotifications();
-        };
-        div.appendChild(btn);
+    function render(files) {
+      filesEl.innerHTML = '';
+      if (!files.length) {
+        emptyEl.style.display = 'block';
+        return;
       }
-      notificationsList.appendChild(div);
+      emptyEl.style.display = 'none';
+      files.forEach((file) => {
+        const div = document.createElement('div');
+        div.className = 'file';
+        div.innerHTML = `
+          <div class="file-header">
+            <strong title="${file.originalName || file.name}">${file.originalName || file.name}</strong>
+            <div class="chip">${formatBytes(file.size)}</div>
+          </div>
+          <div class="muted">${new Date(file.uploadedAt).toLocaleString()}</div>
+          <div class="file-actions">
+            <a class="link" href="${file.url}" download>Download</a>
+            <button class="danger" data-name="${file.name}">Delete</button>
+          </div>
+        `;
+        div.querySelector('.danger').addEventListener('click', () => deleteFile(file.name));
+        filesEl.appendChild(div);
+      });
+    }
+
+    async function loadFiles() {
+      statusEl.textContent = 'Loading files...';
+      try {
+        const res = await fetch('/api/files');
+        if (!res.ok) throw new Error('Failed to fetch files');
+        const data = await res.json();
+        render(data.files || []);
+        statusEl.textContent = '';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Could not load files.';
+      }
+    }
+
+    async function deleteFile(name) {
+      if (!confirm('Delete this file from the server?')) return;
+      statusEl.textContent = 'Deleting...';
+      try {
+        const res = await fetch(`/api/files/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        await loadFiles();
+        statusEl.textContent = 'File removed.';
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Could not delete file.';
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files.length) {
+        statusEl.textContent = 'Pick a file first.';
+        return;
+      }
+      const data = new FormData();
+      data.append('file', fileInput.files[0]);
+      statusEl.textContent = 'Uploading...';
+      uploadBtn.disabled = true;
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: data });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Upload failed');
+        statusEl.textContent = `Uploaded ${payload.file.originalName || payload.file.name}.`;
+        fileInput.value = '';
+        await loadFiles();
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = err.message || 'Upload failed.';
+      } finally {
+        uploadBtn.disabled = false;
+      }
     });
-  }
 
-  function render() {
-    renderNav();
-    const authenticated = Boolean(state.user);
-    authCard.style.display = authenticated ? 'none' : 'block';
-    teamCard.style.display = authenticated ? 'block' : 'none';
-    createTaskCard.style.display = authenticated ? 'block' : 'none';
-    tasksCard.style.display = authenticated ? 'block' : 'none';
-    notificationsCard.style.display = authenticated ? 'block' : 'none';
-    if (authenticated) {
-      renderTeam();
-      renderUsers();
-      renderTasks();
-      renderNotifications();
-    }
-  }
-
-  async function loadProfile() {
-    if (!state.token) return;
-    try {
-      const { user } = await api('/api/me');
-      state.user = user;
-      render();
-      await Promise.all([loadUsers(), loadTasks(), loadNotifications(true)]);
-      startNotificationPolling();
-    } catch (err) {
-      console.error(err);
-      localStorage.removeItem('token');
-      state.token = null;
-      render();
-    }
-  }
-
-  async function loadUsers() {
-    const res = await api('/api/users');
-    state.users = res.users;
-    renderUsers();
-  }
-
-  async function loadTasks() {
-    const res = await api('/api/tasks');
-    state.tasks = res.tasks;
-    renderTasks();
-  }
-
-  async function loadNotifications(silent = false) {
-    const res = await api('/api/notifications');
-    const prevIds = new Set(state.notifications.map((n) => n.id));
-    state.notifications = res.notifications;
-    const newOnes = res.notifications.filter((n) => !n.read && !prevIds.has(n.id));
-    if (newOnes.length && !silent) {
-      playChime();
-      newOnes.forEach((n) => browserNotify(n.message));
-    }
-    renderNotifications();
-  }
-
-  async function updateTask(id, payload) {
-    try {
-      await api(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
-      await loadTasks();
-      await loadNotifications();
-    } catch (err) {
-      alert(err.message);
-    }
-  }
-
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    loginError.textContent = '';
-    try {
-      const form = new FormData(loginForm);
-      const body = Object.fromEntries(form.entries());
-      const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(body) });
-      state.token = res.token;
-      localStorage.setItem('token', res.token);
-      state.user = res.user;
-      await loadProfile();
-    } catch (err) {
-      loginError.textContent = err.message;
-    }
-  });
-
-  registerForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    registerError.textContent = '';
-    try {
-      const form = new FormData(registerForm);
-      const body = Object.fromEntries(form.entries());
-      const res = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) });
-      state.token = res.token;
-      localStorage.setItem('token', res.token);
-      state.user = res.user;
-      await loadProfile();
-    } catch (err) {
-      registerError.textContent = err.message;
-    }
-  });
-
-  createTeamForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    teamError.textContent = '';
-    const form = new FormData(createTeamForm);
-    try {
-      const res = await api('/api/teams', { method: 'POST', body: JSON.stringify({ name: form.get('name') }) });
-      state.user.team = res.team;
-      await loadProfile();
-    } catch (err) {
-      teamError.textContent = err.message;
-    }
-  });
-
-  joinTeamForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    teamError.textContent = '';
-    const code = new FormData(joinTeamForm).get('invite');
-    try {
-      const res = await api('/api/teams/join', { method: 'POST', body: JSON.stringify({ inviteCode: code }) });
-      state.user.team = res.team;
-      await loadProfile();
-    } catch (err) {
-      teamError.textContent = err.message;
-    }
-  });
-
-  taskForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    taskError.textContent = '';
-    const form = new FormData(taskForm);
-    const payload = Object.fromEntries(form.entries());
-    if (!payload.assignedTo) delete payload.assignedTo;
-    try {
-      await api('/api/tasks', { method: 'POST', body: JSON.stringify(payload) });
-      taskForm.reset();
-      await loadTasks();
-    } catch (err) {
-      taskError.textContent = err.message;
-    }
-  });
-
-  applyTheme(state.theme);
-  if (state.token) loadProfile();
-  render();
-</script>
+    loadFiles();
+  </script>
 </body>
 </html>
